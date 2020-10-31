@@ -1,4 +1,4 @@
-import { checkFourInARow, slidingWindow, slidingBox, slice2D } from ".";
+import { checkFourInARow, slidingWindow, slidingBox, slice2D, getBoxDiagonals } from ".";
 
 type Player = "r" | "y" 
 type Place = Player | "." 
@@ -123,5 +123,21 @@ describe("slice2D", () => {
     const result = slice2D(inputBoard, 0, 3, 3)
     expect(result).toBeUndefined();
 
+  });
+});
+
+describe("getBoxDiagonals", () => {
+  it("returns the correct diagonals", () => {
+    const inputBox = [ 
+      [1,2,3,4],
+      [5,6,7,8],
+      [9,10,11,12],
+      [13,14,15,16],
+      ]
+    const windowSize = 4
+    const result = getBoxDiagonals(inputBox, windowSize)
+    const expectedResult = [[1,6,11,16], [4,7,10,13]]
+
+    expect(result).toEqual(expectedResult);
   });
 });

@@ -40,6 +40,25 @@ function getColumns(board:Board): Column[]{ //returns an array of columns as opp
     return Array(numberOfColumns).fill(undefined).map((_, index) => selectColumn(board, index))
 }
 
+//Did this all by myself!
+export function getBoxDiagonals<T>(box:T[][], boxSize: number): T[][] {
+    if (box.length < boxSize || box[0].length < boxSize){
+        return []
+    }
+
+    const forwardDiagonal = box.map((row, rowIndex) => { return row[rowIndex] })
+    const backwardDiagonal = box.map((row, rowIndex) => { return row[boxSize - rowIndex - 1] })
+
+    return [forwardDiagonal,backwardDiagonal]
+}
+
+function getBoardDiagonals(board:Board): Place[][]{
+    const boxWindows = slidingBox(board, winningLength)
+
+    // by using flatmap we will return an array of all the possible diagonals of the correct size
+    return boxWindows.flatMap(box => getBoxDiagonals(box, winningLength))
+}
+
 function findEmptyRow(column:Column): number | undefined{
     // will not return a number if column full or column does not exist
     const row = column.findIndex(row => row === '.')
@@ -148,8 +167,13 @@ function checkForWinner(board:Board): Player | undefined {
     // and then do the same check for any winners across each column
     const columnWinner: Player[] = columns.map(column => checkFourInARow(column))
 
+    // Bit different from the above two as we have already trimmed the diagonal ranges to the correct size of 4 so technically don't need slidinigWindows
+    // We can still call slidingWindows on it with no effect but  would work without
+    const diagonals = getBoardDiagonals(board)
+    const diagonalWinner: Player[] = diagonals.map(diagonal => checkFourInARow(diagonal))
+
     //combine them together - if there are no winners, it will be an array of undefineds otherwise it will return either r or y
-    const boardWinner = [...rowWinner, ...columnWinner].find(result => result !== undefined) 
+    const boardWinner = [...rowWinner, ...columnWinner, ...diagonalWinner].find(result => result !== undefined) 
     
     return boardWinner
 }
@@ -181,7 +205,6 @@ async function processPlayerMove(readline:any, currentPlayer: Player): Promise<P
     if (winner){
         //return potential winner
         console.log(`Congratulations, you have won ${winner}`)
-        displayBoard(gameBoard);
     }
 
     return winner
@@ -220,9 +243,7 @@ async function repl(readline:any){
     }
 })(); // IIFE - calls the function immediately
 
-// test create box too, rename
-// edge cases
-// got boxes, now to get diagonals
+
 // move out some functions - add stucture
 // look at other solutions?
 // fully functional web app
