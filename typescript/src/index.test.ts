@@ -1,4 +1,4 @@
-import { checkFourInARow, slidingWindow } from ".";
+import { checkFourInARow, slidingWindow, slidingBox } from ".";
 
 type Player = "r" | "y" 
 type Place = Player | "." 
@@ -39,5 +39,42 @@ describe("checkFourInARow", () => {
     const result = checkFourInARow(inputRange)
 
     expect(result).toEqual("y");
+  });
+});
+
+describe("slidingBox", () => {
+  it("returns all boxes of the specified size", () => {
+    let inputBoard = [ 
+      [1,2,3,4],
+      [5,6,7,8],
+      [9,10,11,12],
+      [13,14,15,16],
+      ]
+    
+    const result = slidingBox(inputBoard, 3)
+    const expectedResult = [
+      [ 
+        [1,2,3],
+        [5,6,7],
+        [9,10,11]
+      ],
+      [ 
+        [2,3,4],
+        [6,7,8],
+        [10,11,12]
+      ],
+      [ 
+        [5,6,7],
+        [9,10,11],
+        [13,14,15]
+      ],
+      [ 
+        [6,7,8],
+        [10,11,12],
+        [14,15,16],
+      ]
+    ]
+    expect(result).toEqual(expectedResult);
+
   });
 });

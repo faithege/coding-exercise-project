@@ -1,10 +1,5 @@
 
-import * as readline from 'readline'; 
-
-const rl = readline.createInterface({
-input: process.stdin,
-output: process.stdout
-})
+import readline from 'readline-promise'; 
 
 type Player = "r" | "y" 
 type Place = Player | "." //either a player or an empty space
@@ -12,7 +7,7 @@ type Row = Place[] //array of 7 places, no longer a tuple
 type Column = Place[] //array of 6 places, no longer a tuple
 type Board = Row[] //now an array rather than a tuple (mapping a tuple, turns into an array and returns an array of noon fixed length)
 
-
+const winningLength = 4
 let gameBoard: Board = 
         [ //tuple of 6 rows which ae a tuple of 7 places
         [".",".",".",".",".",".","."],
@@ -23,8 +18,6 @@ let gameBoard: Board =
         [".",".",".",".",".",".","."]
         ]
 
-
-let currentPlayer: Player = "r"
 
 function displayBoard(board: Board){
     const rowStrings = board.map(row => row.join(' ')) //specify separator
@@ -81,9 +74,44 @@ export function slidingWindow<T>(array: T[], windowSize: number): T[][]{
             .filter( slice => slice.length === windowSize)
 }
 
-function checkFourInARow(range: Place[]): Player | undefined {
+//2D version of .slice
+function createBox<T>(board: T[][], xIndex: number, yIndex: number, boxSize: number): (T[][] | undefined) {
+    
+    // chop off top and bottom rows
+    const xSlicedResult = board.slice(xIndex, xIndex + boxSize)
 
-    const windows = slidingWindow(range, 4); //don't need to declare type, inferred
+    if (xSlicedResult.length !== boxSize){
+        return undefined
+    }
+
+    // chop off left and right cols
+    const ySlicedResult = xSlicedResult.map(row => row.slice(yIndex, yIndex + boxSize))
+
+    if (ySlicedResult[0].length !== boxSize){
+        return undefined
+    }
+    else {
+        return ySlicedResult
+    }
+}
+
+export function slidingBox<T>(board: T[][], boxSize: number): T[][][]{
+    if (board.length < boxSize){
+        return []
+    }
+    // create all boxes then filter for correct sizes
+    // using flatmap flattens the first array so we get an array of Boxes
+    const boxes: (T[][] | undefined)[] = board.flatMap((row,xIndex) => { return row.map((_, yIndex) => createBox(board, xIndex, yIndex, boxSize)) })
+    
+    // WHY DOES BOXES DROP UNDEFINED UNION TYPE
+    return boxes.filter(box => box !== undefined)
+
+   
+}
+
+export function checkFourInARow(range: Place[]): Player | undefined {
+
+    const windows = slidingWindow(range, winningLength); //don't need to declare type, inferred
 
     const results = windows.map(window => {
         // look at each window in turn and assess whether either all rs or all ys
@@ -102,6 +130,7 @@ function checkFourInARow(range: Place[]): Player | undefined {
     return results.find(result => result !== undefined) 
 }
 
+
 function checkForWinner(board:Board): Player | undefined {
     // We didn't need to define a type here but it makes it helpful in understanding the flow of the code
     // checkFourInARow retuns us either r/y/undefined for each row in a board so we'll get an array of Players
@@ -118,53 +147,83 @@ function checkForWinner(board:Board): Player | undefined {
     return boardWinner
 }
 
-function repl(){
-
-    displayBoard(gameBoard);
-    console.log(`Your turn ${currentPlayer}`)
-
-    rl.question("Please select a column from 1-7", function(column) {
-        console.log(`You have selected ${column}`);
-        try {
-            gameBoard = placeCounter(gameBoard, parseInt(column)-1, currentPlayer) //we need the column to be 0-based so minus 1
-            displayBoard(gameBoard);
-
-            // check if winner vertical or horizontal
-            const winner = checkForWinner(gameBoard);
-
-            if (winner){
-                //return potential winner
-                console.log(`Congratulations, you have won ${winner}`)
-            }
-
-            //check for diagonal
-            //
-
-            //if so celebratory message plus display winning board
-            //if not switch current player - create basic function that inverts player!! then loop
-        }
-        catch(error) {
-            console.log(error) // need to loop if row full, but don't change player
-        }
-        //return undefined
-        rl.close();
-        
-    });
-
-    //todo
-    //test edge case of sliding window
-    //test check winner
-    // create switchPlayer function mt %2 idea probs not that fiendly to another developer
-    // add loop - while loop
-    //for winner display board and break
-    //write function that gives possible diagonals of length 4
-        //leave first row untouched then chop 1 off then 2 off etc then pass into my checkFor4
+// take in a currentPlayer argument to avoid modifying the original?
+function switchCurrentPlayer(currentPlayer: Player): Player {
+    if(currentPlayer === "r") {
+        return "y"
+    }
+    else if (currentPlayer === "y") {
+        return "r"
+    }
 
 }
 
-repl()
+async function processPlayerMove(readline:any, currentPlayer: Player): Promise<Player | undefined>{
+    const column = await readline.questionAsync("Please select a column from 1-7: ")
 
-//want a number from the user (we determine row based on state of board)
+    console.log(` `);
+    try {
+        gameBoard = placeCounter(gameBoard, parseInt(column)-1, currentPlayer) //we need the column to be 0-based so minus 1
+        displayBoard(gameBoard);
+
+        // check if winner vertical or horizontal
+        const winner = checkForWinner(gameBoard);
+        
+
+        if (winner){
+            //return potential winner
+            console.log(`Congratulations, you have won ${winner}`)
+            displayBoard(gameBoard);
+        }
+
+        return winner
+    }
+    catch(error) {
+        console.log(error) // need to loop if row full, but don't change player
+    }
+}
+
+async function repl(readline:any){
+
+    displayBoard(gameBoard);
+    let currentPlayer: Player = "r"
+    let winner = undefined
+    
+    do {
+        console.log(`Your turn ${currentPlayer}`)
+        winner = await processPlayerMove(readline, currentPlayer)
+        currentPlayer = switchCurrentPlayer(currentPlayer);
+    }
+    while (winner === undefined)
+    
+
+}
+
+// Start Game - top level async function then immediately called using ()
+(async () => {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+        terminal: true
+        })
+
+    try {
+        await repl(rl)
+    } catch (error) {
+        console.log(error)
+    }
+    finally {
+        rl.close()
+    }
+})();
+
+// test create box too, rename
+// edge cases
+// got boxes, now to get diagonals
+// move out some functions - add stucture
+// look at other solutions?
+// fully functional web app
+
 
 //nice to have
 // user input validation
