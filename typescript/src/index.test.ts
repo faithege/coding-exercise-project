@@ -1,4 +1,4 @@
-import { checkFourInARow, slidingWindow, slidingBox } from ".";
+import { checkFourInARow, slidingWindow, slidingBox, slice2D } from ".";
 
 type Player = "r" | "y" 
 type Place = Player | "." 
@@ -75,6 +75,53 @@ describe("slidingBox", () => {
       ]
     ]
     expect(result).toEqual(expectedResult);
+
+  });
+
+  it("returns an empty array if the input box is smaller han the window box", () => {
+    let inputBoard = [ 
+      [1,2,3,4],
+      [5,6,7,8],
+      [9,10,11,12],
+      [13,14,15,16],
+      ]
+    
+    const result = slidingBox(inputBoard, 5)
+    const expectedResult = []
+    expect(result).toEqual(expectedResult);
+
+  });
+});
+
+describe("slice2D", () => {
+  it("returns all boxes of the specified size", () => {
+    let inputBoard = [ 
+      [1,2,3,4],
+      [5,6,7,8],
+      [9,10,11,12],
+      [13,14,15,16],
+      ]
+    
+    const result = slice2D(inputBoard, 0, 0, 3)
+    const expectedResult = [
+        [1,2,3],
+        [5,6,7],
+        [9,10,11]
+      ]
+    expect(result).toEqual(expectedResult);
+
+  });
+
+  it("returns undefinied if a correctly sized box cannot be sliced", () => {
+    let inputBoard = [ 
+      [1,2,3,4],
+      [5,6,7,8],
+      [9,10,11,12],
+      [13,14,15,16],
+      ]
+    
+    const result = slice2D(inputBoard, 0, 3, 3)
+    expect(result).toBeUndefined();
 
   });
 });

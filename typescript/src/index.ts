@@ -41,7 +41,7 @@ function getColumns(board:Board): Column[]{ //returns an array of columns as opp
 }
 
 function findEmptyRow(column:Column): number | undefined{
-    // may not return a number if column full
+    // will not return a number if column full or column does not exist
     const row = column.findIndex(row => row === '.')
     return row === -1 ? undefined : 5 - row // need to re-reverse the order
 }
@@ -61,25 +61,26 @@ function placeCounter(board:Board, columnIndex: number, player: Player): Board{
 }
 
 // make type agnostic (can test with numbers as generic)
-export function slidingWindow<T>(array: T[], windowSize: number): T[][]{
+export function slidingWindow<T>(array: T[], arrayWindowSize: number): T[][]{
     //number of windows = inputarray.length - window + 1
 
     //edge cases - if array.length<window size
-    if (array.length < windowSize){
+    if (array.length < arrayWindowSize){
         throw "Window size larger than inputted array";
     }
 
     // not the most efficient but simply written
-    return array.map((_, index) => array.slice(index, index + windowSize))
-            .filter( slice => slice.length === windowSize)
+    return array.map((_, index) => array.slice(index, index + arrayWindowSize))
+            .filter( slice => slice.length === arrayWindowSize)
 }
 
 //2D version of .slice
-function createBox<T>(board: T[][], xIndex: number, yIndex: number, boxSize: number): (T[][] | undefined) {
+export function slice2D<T>(inputBox: T[][], xIndex: number, yIndex: number, boxSize: number): (T[][] | undefined) {
     
     // chop off top and bottom rows
-    const xSlicedResult = board.slice(xIndex, xIndex + boxSize)
+    const xSlicedResult = inputBox.slice(xIndex, xIndex + boxSize)
 
+    // handle cases where we can't fit in the size of a box eg if slice from xIndex 5 for a box size 4 on an input box of 6 - not enough space
     if (xSlicedResult.length !== boxSize){
         return undefined
     }
@@ -95,14 +96,20 @@ function createBox<T>(board: T[][], xIndex: number, yIndex: number, boxSize: num
     }
 }
 
-export function slidingBox<T>(board: T[][], boxSize: number): T[][][]{
-    if (board.length < boxSize){
+export function slidingBox<T>(inputBox: T[][], boxWindowSize: number): T[][][]{
+    // create all boxes then filter for correct sizes
+
+    //edge case handling
+    if (inputBox.length < boxWindowSize){
+        // or could throw an error
         return []
     }
-    // create all boxes then filter for correct sizes
-    // using flatmap flattens the first array so we get an array of Boxes
-    const boxes: (T[][] | undefined)[] = board.flatMap((row,xIndex) => { return row.map((_, yIndex) => createBox(board, xIndex, yIndex, boxSize)) })
     
+
+    // using flatmap flattens the first array so we get an array of Boxes by mapping across each place in the box to take it from 4D to 3D
+    const boxes: (T[][] | undefined)[] = inputBox.flatMap((row,xIndex) => { return row.map((_, yIndex) => slice2D(inputBox, xIndex, yIndex, boxWindowSize)) })
+    
+    // Filter for the ones of the correct size
     // WHY DOES BOXES DROP UNDEFINED UNION TYPE
     return boxes.filter(box => box !== undefined)
 
@@ -161,33 +168,30 @@ function switchCurrentPlayer(currentPlayer: Player): Player {
 async function processPlayerMove(readline:any, currentPlayer: Player): Promise<Player | undefined>{
     const column = await readline.questionAsync("Please select a column from 1-7: ")
 
+    // Added so that terminal looks nice, less bunched up
     console.log(` `);
-    try {
-        gameBoard = placeCounter(gameBoard, parseInt(column)-1, currentPlayer) //we need the column to be 0-based so minus 1
+
+    gameBoard = placeCounter(gameBoard, parseInt(column)-1, currentPlayer) //we need the column to be 0-based so minus 1
+    displayBoard(gameBoard);
+
+    // check if winner vertical or horizontal
+    const winner = checkForWinner(gameBoard);
+    
+
+    if (winner){
+        //return potential winner
+        console.log(`Congratulations, you have won ${winner}`)
         displayBoard(gameBoard);
-
-        // check if winner vertical or horizontal
-        const winner = checkForWinner(gameBoard);
-        
-
-        if (winner){
-            //return potential winner
-            console.log(`Congratulations, you have won ${winner}`)
-            displayBoard(gameBoard);
-        }
-
-        return winner
     }
-    catch(error) {
-        console.log(error) // need to loop if row full, but don't change player
-    }
+
+    return winner
 }
 
 async function repl(readline:any){
 
     displayBoard(gameBoard);
     let currentPlayer: Player = "r"
-    let winner = undefined
+    let winner: Player | undefined = undefined
     
     do {
         console.log(`Your turn ${currentPlayer}`)
@@ -196,7 +200,6 @@ async function repl(readline:any){
     }
     while (winner === undefined)
     
-
 }
 
 // Start Game - top level async function then immediately called using ()
@@ -215,7 +218,7 @@ async function repl(readline:any){
     finally {
         rl.close()
     }
-})();
+})(); // IIFE - calls the function immediately
 
 // test create box too, rename
 // edge cases
