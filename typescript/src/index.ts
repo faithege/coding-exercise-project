@@ -28,7 +28,6 @@ function selectColumn(board:Board, columnIndex: number): Column{
     return board.map(row => row[columnIndex]).reverse() //returns an array - of type Column
 }
 
-
 function getColumns(board:Board): Column[]{ //returns an array of columns as opposed to an array of rows(which is what the board is)
     //board.map(row => selectColumn(board, row))
 			// what I started doing, I guess ultimately I would then fill an array with the xth value for each row
@@ -210,18 +209,17 @@ async function processPlayerMove(readline:any, currentPlayer: Player): Promise<P
     return winner
 }
 
-async function repl(readline:any){
+async function repl(readline:any, currentPlayer:Player){
 
-    displayBoard(gameBoard);
-    let currentPlayer: Player = "r"
-    let winner: Player | undefined = undefined
-    
-    do {
-        console.log(`Your turn ${currentPlayer}`)
-        winner = await processPlayerMove(readline, currentPlayer)
-        currentPlayer = switchCurrentPlayer(currentPlayer);
+    console.log(`Your turn ${currentPlayer}`)
+    let winner = await processPlayerMove(readline, currentPlayer)
+
+    if (winner) {
+        return 
     }
-    while (winner === undefined)
+
+    currentPlayer = switchCurrentPlayer(currentPlayer);
+    await repl(readline, currentPlayer) //THIS NEEDS AN AWAIT OTHERWISE THE PROGRAMME EXITS
     
 }
 
@@ -234,7 +232,9 @@ async function repl(readline:any){
         })
 
     try {
-        await repl(rl)
+        displayBoard(gameBoard);
+        const currentPlayer: Player = "r"
+        await repl(rl, currentPlayer)
     } catch (error) {
         console.log(error)
     }
