@@ -1,4 +1,4 @@
-import { checkFourInARow, slidingWindow, slidingBox, slice2D, getBoxDiagonals } from ".";
+import { checkWindowsForWinner, slidingWindow, slidingBox, slice2D, getBoxDiagonals } from ".";
 
 type Player = "r" | "y" 
 type Place = Player | "." 
@@ -26,17 +26,17 @@ describe("slidingWindow", () => {
   });
 });
 
-describe("checkFourInARow", () => {
+describe("checkWindowsForWinner", () => {
   it("returns undefined if there are not 4 in a row", () => {
-    const inputRange: Place[] = [".","r",".","y","y","r","."]
-    const result = checkFourInARow(inputRange)
+    const inputRange: Place[][] = [[".","r","."],["y","y","r","."]]
+    const result = checkWindowsForWinner(inputRange)
 
     expect(result).toBeUndefined();
   });
 
   it("returns the winning player if there are 4 in a row", () => {
-    const inputRange: Place[] = [".","y","y","y","y","r","."]
-    const result = checkFourInARow(inputRange)
+    const inputRange: Place[][] = [[".","r","."],["y","y","y","y"]]
+    const result = checkWindowsForWinner(inputRange)
 
     expect(result).toEqual("y");
   });
