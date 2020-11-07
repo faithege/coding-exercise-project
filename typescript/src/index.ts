@@ -7,7 +7,6 @@ type Row = Place[] //array of 7 places, no longer a tuple
 type Column = Place[] //array of 6 places, no longer a tuple
 type Board = Row[] //now an array rather than a tuple (mapping a tuple, turns into an array and returns an array of noon fixed length)
 
-const winningLength = 4
 let gameBoard: Board = 
         [ //tuple of 6 rows which ae a tuple of 7 places
         [".",".",".",".",".",".","."],
@@ -52,22 +51,22 @@ export function getBoxDiagonals<T>(box:T[][], boxSize: number): T[][] {
     return [forwardDiagonal,backwardDiagonal]
 }
 
-function getDiagonalWindows(board:Board): Place[][]{
-    const boxWindows = slidingBox(board, winningLength)
+function getDiagonalWindows(board:Board, windowSize: number): Place[][]{
+    const boxWindows = slidingBox(board, windowSize)
 
     // by using flatmap we will return an array of all the possible diagonals of the correct size
-    return boxWindows.flatMap(box => getBoxDiagonals(box, winningLength))
+    return boxWindows.flatMap(box => getBoxDiagonals(box, windowSize))
 }
 
-function getRowWindows(board:Board): Place[][]{
-    return board.flatMap(row => slidingWindow(row, winningLength))
+function getRowWindows(board:Board, windowSize: number): Place[][]{
+    return board.flatMap(row => slidingWindow(row, windowSize))
 }
 
-function getColumnWindows(board:Board): Place[][]{
+function getColumnWindows(board:Board, windowSize: number): Place[][]{
     //we have to create our columns as an array of arrays (essentially rotating the board around)
     const columns = getColumns(board)
     // and then do the same check for any winners across each column
-    return columns.flatMap(column => slidingWindow(column, winningLength))
+    return columns.flatMap(column => slidingWindow(column, windowSize))
 }
 
 function findEmptyRow(column:Column): number | undefined{
@@ -168,15 +167,16 @@ export function checkWindowsForWinner(windows: Place[][]): Player | undefined {
 
 function checkBoardForWinner(board:Board): Player | undefined {
     // We didn't need to define a type here but it makes it helpful in understanding the flow of the code
+    const winningLength = 4
     
      //don't need to declare type, inferred
-    const rowWindows = getRowWindows(board)
+    const rowWindows = getRowWindows(board, winningLength)
     const rowWinner: Player | undefined = checkWindowsForWinner(rowWindows)
 
-    const columnWindows = getColumnWindows(board)
+    const columnWindows = getColumnWindows(board, winningLength)
     const columnWinner: Player | undefined = checkWindowsForWinner(columnWindows)
 
-    const diagonalWindows = getDiagonalWindows(board)
+    const diagonalWindows = getDiagonalWindows(board, winningLength)
     const diagonalWinner: Player | undefined = checkWindowsForWinner(diagonalWindows)
 
     //combine them together - if there are no winners, it will be an array of undefineds otherwise it will return either r or y
