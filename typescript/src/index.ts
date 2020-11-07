@@ -40,6 +40,36 @@ function getColumns(board:Board): Column[]{ //returns an array of columns as opp
     return Array(numberOfColumns).fill(undefined).map((_, index) => selectColumn(board, index))
 }
 
+//Did this all by myself!
+export function getBoxDiagonals<T>(box:T[][], boxSize: number): T[][] {
+    if (box.length < boxSize || box[0].length < boxSize){
+        return []
+    }
+
+    const forwardDiagonal = box.map((row, rowIndex) => { return row[rowIndex] })
+    const backwardDiagonal = box.map((row, rowIndex) => { return row[boxSize - rowIndex - 1] })
+
+    return [forwardDiagonal,backwardDiagonal]
+}
+
+function getDiagonalWindows(board:Board): Place[][]{
+    const boxWindows = slidingBox(board, winningLength)
+
+    // by using flatmap we will return an array of all the possible diagonals of the correct size
+    return boxWindows.flatMap(box => getBoxDiagonals(box, winningLength))
+}
+
+function getRowWindows(board:Board): Place[][]{
+    return board.flatMap(row => slidingWindow(row, winningLength))
+}
+
+function getColumnWindows(board:Board): Place[][]{
+    //we have to create our columns as an array of arrays (essentially rotating the board around)
+    const columns = getColumns(board)
+    // and then do the same check for any winners across each column
+    return columns.flatMap(column => slidingWindow(column, winningLength))
+}
+
 function findEmptyRow(column:Column): number | undefined{
     // will not return a number if column full or column does not exist
     const row = column.findIndex(row => row === '.')
@@ -116,9 +146,7 @@ export function slidingBox<T>(inputBox: T[][], boxWindowSize: number): T[][][]{
    
 }
 
-export function checkFourInARow(range: Place[]): Player | undefined {
-
-    const windows = slidingWindow(range, winningLength); //don't need to declare type, inferred
+export function checkWindowsForWinner(windows: Place[][]): Player | undefined {
 
     const results = windows.map(window => {
         // look at each window in turn and assess whether either all rs or all ys
@@ -138,18 +166,21 @@ export function checkFourInARow(range: Place[]): Player | undefined {
 }
 
 
-function checkForWinner(board:Board): Player | undefined {
+function checkBoardForWinner(board:Board): Player | undefined {
     // We didn't need to define a type here but it makes it helpful in understanding the flow of the code
-    // checkFourInARow retuns us either r/y/undefined for each row in a board so we'll get an array of Players
-    const rowWinner: Player[] = board.map(row => checkFourInARow(row))
+    
+     //don't need to declare type, inferred
+    const rowWindows = getRowWindows(board)
+    const rowWinner: Player | undefined = checkWindowsForWinner(rowWindows)
 
-    //we have to create our columns as an array of arrays (essentially rotating the board around)
-    const columns = getColumns(board)
-    // and then do the same check for any winners across each column
-    const columnWinner: Player[] = columns.map(column => checkFourInARow(column))
+    const columnWindows = getColumnWindows(board)
+    const columnWinner: Player | undefined = checkWindowsForWinner(columnWindows)
+
+    const diagonalWindows = getDiagonalWindows(board)
+    const diagonalWinner: Player | undefined = checkWindowsForWinner(diagonalWindows)
 
     //combine them together - if there are no winners, it will be an array of undefineds otherwise it will return either r or y
-    const boardWinner = [...rowWinner, ...columnWinner].find(result => result !== undefined) 
+    const boardWinner = [rowWinner, columnWinner, diagonalWinner].find(result => result !== undefined) 
     
     return boardWinner
 }
@@ -175,13 +206,12 @@ async function processPlayerMove(readline:any, currentPlayer: Player): Promise<P
     displayBoard(gameBoard);
 
     // check if winner vertical or horizontal
-    const winner = checkForWinner(gameBoard);
+    const winner = checkBoardForWinner(gameBoard);
     
 
     if (winner){
         //return potential winner
         console.log(`Congratulations, you have won ${winner}`)
-        displayBoard(gameBoard);
     }
 
     return winner
@@ -220,9 +250,7 @@ async function repl(readline:any){
     }
 })(); // IIFE - calls the function immediately
 
-// test create box too, rename
-// edge cases
-// got boxes, now to get diagonals
+
 // move out some functions - add stucture
 // look at other solutions?
 // fully functional web app
