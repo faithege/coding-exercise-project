@@ -89,6 +89,19 @@ function placeCounter(board:Board, columnIndex: number, player: Player): Board{
 
 }
 
+function popOutCounter(board:Board, columnIndex: number): Board{
+    //remove counter, and add an empty place at top of column  which shift pieces down
+    const column = board.map(row => row[columnIndex])
+    column.pop()
+    column.unshift(".")
+    const poppedColumn = column
+
+    board.map((row, index) => row[columnIndex] = poppedColumn[index])
+
+    return board
+
+}
+
 // make type agnostic (can test with numbers as generic)
 export function slidingWindow<T>(array: T[], arrayWindowSize: number): T[][]{
     //number of windows = inputarray.length - window + 1
@@ -197,12 +210,19 @@ function switchCurrentPlayer(currentPlayer: Player): Player {
 }
 
 async function processPlayerMove(readline:any, currentPlayer: Player): Promise<Player | undefined>{
-    const column = await readline.questionAsync("Please select a column from 1-7: ")
+    const userMove = await readline.questionAsync("Please select a column from 1-7: ")
 
     // Added so that terminal looks nice, less bunched up
     console.log(` `);
 
-    gameBoard = placeCounter(gameBoard, parseInt(column)-1, currentPlayer) //we need the column to be 0-based so minus 1
+    if (userMove.toLowerCase().startsWith('pop')){
+        const column = userMove.replace('pop','')
+        gameBoard = popOutCounter(gameBoard, parseInt(column)-1, currentPlayer)
+    }
+    else {
+        gameBoard = placeCounter(gameBoard, parseInt(userMove)-1, currentPlayer) //we need the column to be 0-based so minus 1
+    }
+    
     displayBoard(gameBoard);
 
     // check if winner vertical or horizontal
